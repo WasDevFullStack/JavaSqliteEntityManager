@@ -286,6 +286,93 @@ public final class BD {
 		return obj;
 	}
 	
+	public final static <T> T delete(T obj){
+		
+		Connection con = bd.openConnectionAndLock();
+		try{
+			con.setAutoCommit(false);
+			
+			String sql = "";
+			
+			Class<T> cl = (Class<T>) obj.getClass();
+			
+			if(cl.isAnnotationPresent(DBTable.class)){
+				
+				DBTable tbl = cl.getAnnotation(DBTable.class);
+				
+				String nomeTabela = tbl.name();
+				
+				Field f = ReflectionUtil.findFieldByAnnotation(cl,DBID.class);
+				
+				if(f != null){
+					
+					DBID id = f.getAnnotation(DBID.class);
+					
+					String idNome = id.name();
+					if(idNome.isEmpty()){
+						idNome = f.getName();
+					}
+					
+					f.setAccessible(true);
+					long idLong = f.getLong(obj);
+					f.setAccessible(false);
+					
+					
+					
+					Map<String,Boolean> mi = new HashMap<String,Boolean>();
+					
+					
+					Field[] fields = cl.getDeclaredFields();
+					
+					List<Object> params = new ArrayList<Object>();
+					
+					if(idLong > 0){
+						//DELETE
+						sql += "DELETE "+nomeTabela;
+						
+						sql += " WHERE "+idNome+" = "+idLong;
+						
+						PreparedStatement ps = con.prepareStatement(sql);
+						
+						int i = 1;
+						for(Object o : params){
+							ps.setObject(i,o);
+							i++;
+						}
+						
+						int ct = ps.executeUpdate();
+						
+						//System.out.println(ct);
+						
+					}
+					
+					
+					
+					
+					bd.commite(con,true);
+					
+				}else{
+					
+					throw new Exception("Objecto n�o tem ID definido");
+					
+				}
+				
+				
+				
+			}else{
+				throw new Exception("Objecto n�o � uma tabela do banco de dados");
+			}
+			
+			
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}finally{
+			bd.closeAndUnlock(con);
+		}
+		
+		return obj;
+	}
+	
 	
 	//METODOS//
         
